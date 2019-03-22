@@ -3,6 +3,7 @@
 var canvas;
 var gl;
 
+
 var movement = false;     // Er músarhnappur niðri?
 var spinX = 0;
 var spinY = 0;
@@ -181,12 +182,20 @@ window.onload = function init()
      }
 
 
-     render();
 
-
+    for ( var i = 0; i < heigth; i++ ) {
+        arr[i] = [];
+        for ( var j = 0; j < depth; j++ ){
+            arr[i][j] = [];
+            for ( var k = 0; k < width; k++ ){
+                arr[i][j][k] = 0;
+            }
+        }
+    }
+     gameLoop();
 }
+var arr = [], width = 5, depth = 5, heigth = 5;
 var checked = false;
-
 const moveSpeed = 1.0;
 var moveFB = 0;
 var moveLR = 0;
@@ -195,9 +204,40 @@ var spinY2 = 0;
 var spinX1 = 0;
 var spinY1 = 0;
 
+
+
+
+function gameLoop()
+{
+    arr[0][0][0] = 1;
+    arr[0][1][0] = 1;
+    arr[0][2][0] = 1;
+    arr[1][0][0] = 1;
+
+    arr[0][0][1] = 2;
+    arr[1][0][1] = 2;
+    arr[2][0][1] = 2;
+    arr[3][0][1] = 2;
+
+    arr[0+2][0][0+2] = 1;
+    arr[0+2][1][0+2] = 1;
+    arr[0+2][2][0+2] = 1;
+    arr[1+2][0][0+2] = 1;
+
+    arr[1][1][0] = 1;
+    arr[1][1][1] = 1;
+    arr[1][1][2] = 1;
+    arr[1][0][2] = 1;
+
+    render();
+    requestAnimFrame(gameLoop);
+}
+
+
+
+
 function render()
 {
-
     gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
     if(checked){
         spinX2 = spinX;
@@ -226,36 +266,55 @@ function render()
     var materialAmbient = vec4( 0.1, 0.0, 0.0, 1.0 );
     var materialDiffuse = vec4( 1.0, 0.0, 0.0, 1.0 );
     var materialSpecular = vec4( 1.0, 1.0, 1.0, 1.0 );
+    var redAmbientProduct = mult(lightAmbient, materialAmbient);
+    var redDiffuseProduct = mult(lightDiffuse, materialDiffuse);
+    var redSpecularProduct = mult(lightSpecular, materialSpecular);
 
-    ambientProduct = mult(lightAmbient, materialAmbient);
-    diffuseProduct = mult(lightDiffuse, materialDiffuse);
-    specularProduct = mult(lightSpecular, materialSpecular);
+    materialAmbient = vec4( 0.0, 0.0, 0.1, 1.0 );
+    materialDiffuse = vec4( 0.0, 0.0, 1.0, 1.0 );
+    materialSpecular = vec4( 1.0, 1.0, 1.0, 1.0 );
+    var blueAmbientProduct = mult(lightAmbient, materialAmbient);
+    var blueDiffuseProduct = mult(lightDiffuse, materialDiffuse);
+    var blueSpecularProduct = mult(lightSpecular, materialSpecular);
 
-    gl.uniform4fv( gl.getUniformLocation(program, "ambientProduct"), flatten(ambientProduct) );
-    gl.uniform4fv( gl.getUniformLocation(program, "diffuseProduct"), flatten(diffuseProduct) );
-    gl.uniform4fv( gl.getUniformLocation(program, "specularProduct"), flatten(specularProduct) );
+
 
     if(!checked) {
         spinX1 = spinX;
         spinY1 = spinY;
     }
-    var mt = mult(rotateY(spinY1), rotateX(spinX1));
-    gl.uniformMatrix4fv(mtLoc, false, flatten(mt) );
-    gl.drawArrays( gl.TRIANGLES, 0, numVerts );
+    var field_rotation = mult(rotateY(spinY1), rotateX(spinX1));
+    var field_translation = translate(-(width-1)/2, -(heigth-1)/2, -(depth-1)/2)
+    var field_mt = mult(field_rotation, field_translation)
 
-    var mt2 =  mult(mt, translate(2.1, -2.1, 0.0));
-    gl.uniformMatrix4fv(mtLoc, false, flatten(mt2) );
-    gl.drawArrays( gl.TRIANGLES, 0, numVerts );
+    var s = scalem(15/32, 15/32, 15/32);
+    var t;
 
-    mt2 =  mult(mt, translate(0.0, 2.1, 0.0));
-    gl.uniformMatrix4fv(mtLoc, false, flatten(mt2) );
-    gl.drawArrays( gl.TRIANGLES, 0, numVerts );
+    for ( var i = 0; i < heigth; i++ ) {
+        for ( var j = 0; j < depth; j++ ){
+            for ( var k = 0; k < width; k++ ){
+                var type = arr[i][j][k];
+                if(type == 1){
+                    gl.uniform4fv( gl.getUniformLocation(program, "ambientProduct" ), flatten(redAmbientProduct) );
+                    gl.uniform4fv( gl.getUniformLocation(program, "diffuseProduct" ), flatten(redDiffuseProduct) );
+                    gl.uniform4fv( gl.getUniformLocation(program, "specularProduct"), flatten(redSpecularProduct) );
+                }
+                else if (type == 2) {
+                    gl.uniform4fv( gl.getUniformLocation(program, "ambientProduct" ), flatten(blueAmbientProduct) );
+                    gl.uniform4fv( gl.getUniformLocation(program, "diffuseProduct" ), flatten(blueDiffuseProduct) );
+                    gl.uniform4fv( gl.getUniformLocation(program, "specularProduct"), flatten(blueSpecularProduct) );
+                } else continue;
 
-    mt2 =  mult(mt, translate(0.0, -2.1, 0.0));
-    gl.uniformMatrix4fv(mtLoc, false, flatten(mt2) );
-    gl.drawArrays( gl.TRIANGLES, 0, numVerts );
+                var t = translate(i, j, k);
+                var mt = mult(t,s);
+                mt = mult(field_mt, mt)
+                gl.uniformMatrix4fv(mtLoc, false, flatten(mt) );
+                gl.drawArrays( gl.TRIANGLES, 0, numVerts );
+            }
+        }
+    }
 
-    gl.uniformMatrix4fv(mvLoc, false, flatten(mv) );
+    // light
     var materialAmbient = vec4( 1.0, 1.0, 1.0, 1.0 );
     var materialDiffuse = vec4( 0.0, 0.0, 0.0, 1.0 );
     var materialSpecular = vec4( 0.0, 0.0, 0.0, 1.0 );
@@ -269,15 +328,10 @@ function render()
     gl.uniform4fv( gl.getUniformLocation(program, "specularProduct"), flatten(specularProduct) );
 
 
-    mt2 =  mult(translate(lightPosition[0],lightPosition[1],lightPosition[2]), scalem(0.1,0.1,0.1));
-    gl.uniformMatrix4fv(mtLoc, false, flatten(mt2) );
+    mt =  mult(translate(lightPosition[0],lightPosition[1],lightPosition[2]), scalem(0.1,0.1,0.1));
+    gl.uniformMatrix4fv(mtLoc, false, flatten(mt) );
     gl.drawArrays( gl.TRIANGLES, 0, numVerts );
-
-    requestAnimFrame( render );
 }
-
-
-
 
 const numVerts = 36;
 const cubeVerts= [

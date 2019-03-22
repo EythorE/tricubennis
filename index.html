@@ -37,7 +37,6 @@ main()
     vec4 color;
 
     vec3 L = normalize( lightPosition.xyz - pos );
-
     vec3 E = normalize(eyePosition.xyz - pos);
     vec3 H = normalize( L + E );
 
@@ -62,9 +61,9 @@ main()
 }
 </script>
 
-<script type="text/javascript" src="../Common/webgl-utils.js"></script>
-<script type="text/javascript" src="../Common/initShaders.js"></script>
-<script type="text/javascript" src="../Common/MV.js"></script>
+<script type="text/javascript" src="./Common/webgl-utils.js"></script>
+<script type="text/javascript" src="./Common/initShaders.js"></script>
+<script type="text/javascript" src="./Common/MV.js"></script>
 <script type="text/javascript" src="v1.js"></script>
 <body>
 
