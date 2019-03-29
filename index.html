@@ -30,6 +30,7 @@ uniform float shininess;
 varying vec3 N, pos;
 uniform vec4 lightPosition;
 uniform vec4 eyePosition;
+uniform float transparency;
 
 void
 main()
@@ -51,7 +52,7 @@ main()
     if( dot(L, N) < 0.0 ) specular = vec4(0.0, 0.0, 0.0, 1.0);
 
     color = ambient + diffuse + specular;
-    color.a = 1.0;
+    color.a = transparency;
 
     gl_FragColor = ambient;
 

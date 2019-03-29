@@ -9,7 +9,9 @@ const min_spinX = 2; // if mouse movement < min_spinX no movement is done
 const max_spinX = 300; // Maximum up down rotation
 const spinX_scale = 0.1; // Speed at which the board moves up down reletive to mouse
 
-const fovy = 60; //field of view
+const fovy = 40; //field of view
+
+const ghost_transparency = .6;
 ////
 
 var canvas;
@@ -68,10 +70,14 @@ window.onload = function init()
     if ( !gl ) { alert( "WebGL isn't available" ); }
     gl.viewport( 0, 0, canvas.width, canvas.height );
     gl.clearColor( 0.0, 0.0, 0.0, 1.0 );
-    proj = perspective( 40, canvas.width/canvas.height, 1.0, -1000.0 );
+    proj = perspective( fovy, canvas.width/canvas.height, 1.0, -1000.0 );
 
 
     gl.enable(gl.DEPTH_TEST);
+
+    // blending for transparency
+    gl.enable(gl.BLEND)
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 
     //
     //  Load shaders and initialize attribute buffers
@@ -118,6 +124,8 @@ window.onload = function init()
 
     // Setjum ofanvarpsfylki hér í­ upphafi
     gl.uniformMatrix4fv(proLoc, false, flatten(proj));
+
+
 
 
     // Atburföll
@@ -255,10 +263,10 @@ function Piece()
 
         // Initialize top position
         this.yPos = height-1;
-        this.xPos = width/2; //getRandomInt( 1, width-1);
-        this.zPos = width/2; //getRandomInt( 1, depth-1);
+        this.xPos = width/2;
+        this.zPos = width/2;
 
-        // Always make same piece the just rotate for randomness
+        // Always make same piece
         this.indicies = []; //+1 or -1 for each axis
         if(this.type == 1){
             this.indicies[0] = [0, 0, 0]; // should always be [0,0,0]
@@ -276,8 +284,8 @@ function Piece()
     }
 
     // Returns the indicies of the blocks furthest on the side indicated
-    // side = [1,0,0] = [x,y,z] return the blocks on side furthest in x direction. 
-    // side = [-1,0,0] returns opposite side. 
+    // side = [1,0,0] = [x,y,z] return the blocks on side furthest in x direction.
+    // side = [-1,0,0] returns opposite side.
     this.getSide = function(side){
         var indicies = [];
         // Check each block
@@ -297,7 +305,7 @@ function Piece()
                     }
                 }
                 if(side[1]==1){
-                    if(x==tempx && y<tempy && z==tempz) 
+                    if(x==tempx && y<tempy && z==tempz)
                         y = tempy;
                 }
                 if(side[0]==1){
@@ -305,15 +313,15 @@ function Piece()
                         x = tempx;
                 }
                 if(side[0]==-1){
-                    if(x>tempx && y==tempy && z==tempz) 
+                    if(x>tempx && y==tempy && z==tempz)
                         x = tempx;
                 }
                 if(side[2]==1){
-                    if(x==tempx && y==tempy && z<tempz) 
+                    if(x==tempx && y==tempy && z<tempz)
                         z = tempz;
                 }
                 if(side[2]==-1){
-                    if(x==tempx && y==tempy && z>tempz) 
+                    if(x==tempx && y==tempy && z>tempz)
                         z = tempz;
                 }
             }
@@ -347,7 +355,7 @@ function Piece()
             for(var i = 0; i<3; i++){ arr[ this.xPos+this.indicies[i][0] ][ this.yPos+this.indicies[i][1] ][ this.zPos+this.indicies[i][2] ] = 0 }
             this.yPos = nextY;
             for(var i = 0; i<3; i++){ arr[ this.xPos+this.indicies[i][0] ][ this.yPos+this.indicies[i][1] ][ this.zPos+this.indicies[i][2] ] = this.type }
-            
+
             // if piece hit rock bottom /placeholder
             for(var i=0; i<3; i++){
                 if(this.yPos + this.indicies[i][1] == 0)
@@ -364,9 +372,9 @@ function Piece()
         var OOB = false; // OUT OF BOUNDS
         console.log(nextX);
         console.log(nextZ)
-        
+
         var sColl = this.getSide([key[1], 0, key[0]]);  // Idices of the blocks on the side where to check for collition
-        
+
         // Check if next any block is out of bound according to the next position
         for(var i = 0; i<3; i++){
             // Check only for collition on the same side the blocks are moving
@@ -506,6 +514,39 @@ function gameLoop()
     requestAnimFrame(gameLoop);
 }
 
+// input: the Piece p
+// output: indicies array [[x,y,z],[x,y,z],[x,y,z]] indicies in arr if dropped
+function pieceDropPos(p){
+    var pos =  vec3(p.xPos, p.yPos, p.zPos);
+    var pieces = [add(pos, p.indicies[1]), add(pos, p.indicies[2]), pos];
+    var p_y = [p.indicies[1][1], p.indicies[2][1], 0]
+    var curr_lowest_pos = 0;
+    var check_center_piece = true;
+    for(var i=0; i<3; i++){
+        if(!check_center_piece && i==2){ break; } // this piece is under center
+        if(p_y[i] == 1){ continue; }// this piece is on top of center
+        var check_p = pieces[i];
+        // check when this block hits another block
+        var lowest_pos = check_p[1] //y
+        while(lowest_pos > 0){
+            if(arr[check_p[0]][lowest_pos-1][check_p[2]] == 0){
+                lowest_pos -= 1;
+            }
+            else break;
+        }
+        // If this block is lower than pos then new_pos must be +1
+        if(p_y[i] == -1){
+            lowest_pos += 1;
+            check_center_piece = false;
+        }
+        if(lowest_pos > curr_lowest_pos){
+            curr_lowest_pos = lowest_pos;
+        }
+    }
+    var drop_pos = vec3(p.xPos, curr_lowest_pos, p.zPos);
+    return [drop_pos, add(drop_pos, p.indicies[1]), add(drop_pos, p.indicies[2])];
+}
+
 
 function render()
 {
@@ -552,6 +593,7 @@ function render()
     var s = scalem(15/32, 15/32, 15/32);
     var t;
 
+    gl.uniform1f( gl.getUniformLocation(program, "transparency"), 1.0 );
     for ( var x = 0; x < width; x++ ) {
         for ( var y = 0; y < height; y++ ){
             for ( var z = 0; z < depth; z++ ){
@@ -576,7 +618,30 @@ function render()
         }
     }
 
+    // draw ghost piece
+    gl.uniform1f( gl.getUniformLocation(program, "transparency"), ghost_transparency );
+    var drop_pieces = pieceDropPos(p);
+    if(p.type == 1){
+        gl.uniform4fv( gl.getUniformLocation(program, "ambientProduct" ), flatten(redAmbientProduct) );
+        gl.uniform4fv( gl.getUniformLocation(program, "diffuseProduct" ), flatten(redDiffuseProduct) );
+        gl.uniform4fv( gl.getUniformLocation(program, "specularProduct"), flatten(redSpecularProduct) );
+    }
+    else if (p.type == 2) {
+        gl.uniform4fv( gl.getUniformLocation(program, "ambientProduct" ), flatten(blueAmbientProduct) );
+        gl.uniform4fv( gl.getUniformLocation(program, "diffuseProduct" ), flatten(blueDiffuseProduct) );
+        gl.uniform4fv( gl.getUniformLocation(program, "specularProduct"), flatten(blueSpecularProduct) );
+    }
+    for(var i=0; i<3; i++){
+        var t = translate(drop_pieces[i]);
+        var mt = mult(t,s);
+        mt = mult(field_mt, mt)
+        gl.uniformMatrix4fv(mtLoc, false, flatten(mt) );
+        gl.drawArrays( gl.TRIANGLES, 0, numVerts );
+    }
+
+
     // light
+    gl.uniform1f( gl.getUniformLocation(program, "transparency"), 1.0 );
     var materialAmbient = vec4( 1.0, 1.0, 1.0, 1.0 );
     var materialDiffuse = vec4( 0.0, 0.0, 0.0, 1.0 );
     var materialSpecular = vec4( 0.0, 0.0, 0.0, 1.0 );
