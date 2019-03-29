@@ -275,25 +275,49 @@ function Piece()
         for(var i = 0; i<3; i++){ arr[ this.xPos+this.indicies[i][0] ][ this.yPos+this.indicies[i][1] ][ this.zPos+this.indicies[i][2] ] = this.type }
     }
 
-    // Returns the indicies of the lowest blocks... indicies
-    this.getLowest = function(){
+    // Returns the indicies of the blocks furthest on the side indicated
+    // side = [1,0,0] = [x,y,z] return the blocks on side furthest in x direction. 
+    // side = [-1,0,0] returns opposite side. 
+    this.getSide = function(side){
         var indicies = [];
         // Check each block
         for(var i=0; i<3; i++){
-            var index = i;
             var x = this.indicies[i][0];
             var y = this.indicies[i][1];
             var z = this.indicies[i][2];
             // Then check all other blocks
             for(var j=0; j<3;j++){
-                var tempx = this.indicies[i][0];
-                var tempy = this.indicies[i][1];
-                var tempz = this.indicies[i][2];
+                var tempx = this.indicies[j][0];
+                var tempy = this.indicies[j][1];
+                var tempz = this.indicies[j][2];
                 // If there is another block with the same x and z values but lower y value
-                if(x==tempx && y<tempy && z==tempz)
-                    index = j;
+                if(side[1]==-1){
+                    if(x==tempx && y>tempy && z==tempz){
+                        y = tempy;
+                    }
+                }
+                if(side[1]==1){
+                    if(x==tempx && y<tempy && z==tempz) 
+                        y = tempy;
+                }
+                if(side[0]==1){
+                    if(x<tempx && y==tempy && z==tempz)
+                        x = tempx;
+                }
+                if(side[0]==-1){
+                    if(x>tempx && y==tempy && z==tempz) 
+                        x = tempx;
+                }
+                if(side[2]==1){
+                    if(x==tempx && y==tempy && z<tempz) 
+                        z = tempz;
+                }
+                if(side[2]==-1){
+                    if(x==tempx && y==tempy && z>tempz) 
+                        z = tempz;
+                }
             }
-            indicies.push(index)
+            indicies.push([x,y,z])
         }
         return indicies;
     }
@@ -303,12 +327,12 @@ function Piece()
     {
         var nextY = this.yPos-1;
         var collision = false; // Collision flag
-        var lowest = this.getLowest(); // Get indicies of the lowest blocks
+        var lowest = this.getSide([0,-1,0]); // Get indicies of the lowest blocks
         for(var i = 0; i<3; i++){
-            if(lowest.includes(i)){
+            if(inA(this.indicies[i],lowest)){
                 var nextBlock = arr[ this.xPos+this.indicies[i][0]][ nextY+ this.indicies[i][1]][ this.zPos+this.indicies[i][2] ];
                 // Only check lowest blocks
-                if(this.indicies[i][1]<1){
+               if(this.indicies[i][1]<1){
                     // If collition, don't move and start a new block
                     if(nextBlock>0){
                         collision = true;
@@ -323,38 +347,54 @@ function Piece()
             for(var i = 0; i<3; i++){ arr[ this.xPos+this.indicies[i][0] ][ this.yPos+this.indicies[i][1] ][ this.zPos+this.indicies[i][2] ] = 0 }
             this.yPos = nextY;
             for(var i = 0; i<3; i++){ arr[ this.xPos+this.indicies[i][0] ][ this.yPos+this.indicies[i][1] ][ this.zPos+this.indicies[i][2] ] = this.type }
+            
             // if piece hit rock bottom /placeholder
-            if(this.yPos==0){
-                this.init();
+            for(var i=0; i<3; i++){
+                if(this.yPos + this.indicies[i][1] == 0)
+                    this.init();
             }
         }
     }
 
     this.move = function(key)
     {
-        for(var i = 0; i<3; i++)
-        {
-            for(var i = 0; i<3; i++){ arr[ this.xPos+this.indicies[i][0] ][ this.yPos+this.indicies[i][1] ][ this.zPos+this.indicies[i][2] ] = 0 }
-            var nextX = this.xPos + key[1];
-            var nextZ = this.zPos + key[0];
-            var OOB = false; // OUT OF BOUNDS
-
-            // Check if next any block is out of bound according to the next position
-            for(var i = 0; i<3; i++){
-                if(nextX+this.indicies[i][0] < 0 || nextX+this.indicies[i][0] >= width)
+        for(var i = 0; i<3; i++){ arr[ this.xPos+this.indicies[i][0] ][ this.yPos+this.indicies[i][1] ][ this.zPos+this.indicies[i][2] ] = 0 }
+        var nextX = this.xPos + key[1];
+        var nextZ = this.zPos + key[0];
+        var OOB = false; // OUT OF BOUNDS
+        console.log(nextX);
+        console.log(nextZ)
+        
+        var sColl = this.getSide([key[1], 0, key[0]]);  // Idices of the blocks on the side where to check for collition
+        
+        // Check if next any block is out of bound according to the next position
+        for(var i = 0; i<3; i++){
+            // Check only for collition on the same side the blocks are moving
+            if(inA(this.indicies[i],sColl)){
+                // If out of bounds
+                if(nextX+this.indicies[i][0] < 0 || nextX+this.indicies[i][0] >= width){
                     OOB = true;
-                if(nextZ+this.indicies[i][2] < 0 || nextZ+this.indicies[i][2] >= width)
+                }
+                if(nextZ+this.indicies[i][2] < 0 || nextZ+this.indicies[i][2] >= width){
                     OOB = true;
+                }
+                // If another block in the way
+                if(!OOB){
+                    var nextBlock = arr[ nextX+this.indicies[i][0]][ this.yPos+this.indicies[i][1] ][ nextZ+this.indicies[i][2] ];
+                    if(nextBlock > 0 )
+                        OOB = true;
+                }
             }
-            // If not outofbounds, allow move
-            if(!OOB){
-                this.xPos = nextX;
-                this.zPos = nextZ;
-            }
-            for(var i = 0; i<3; i++){ arr[ this.xPos+this.indicies[i][0] ][ this.yPos+this.indicies[i][1] ][ this.zPos+this.indicies[i][2] ] = this.type }
-            render()
         }
+        // If not outofbounds, allow move
+        if(!OOB){
+            this.xPos = nextX;
+            this.zPos = nextZ;
+        }
+        for(var i = 0; i<3; i++){ arr[ this.xPos+this.indicies[i][0] ][ this.yPos+this.indicies[i][1] ][ this.zPos+this.indicies[i][2] ] = this.type }
+        render()
     }
+
 
     // input:  2d arr [x,y], dir -1/+1
     // output: 90deg rotated arr [x', y']
@@ -367,6 +407,20 @@ function Piece()
         }
         return current;
     }
+
+    // Check if array A collides with another block or is out of bounds
+    this.rotCollision = function(old, x, y){
+        for(var i=0; i<3; i++){
+            console.log(this.xPos+this.indicies[i][0])
+            if(this.xPos+this.indicies[i][0] < 0 || this.xPos+this.indicies[i][0] >= width
+                || this.zPos+this.indicies[i][2] < 0 || this.zPos+this.indicies[i][2] >= width){
+                this.indicies[1][x] = old[0];
+                this.indicies[1][y] = old[1];
+                this.indicies[2][x] = old[2];
+                this.indicies[2][y] = old[3];
+            }
+        }
+    }
     this.rotateAxis = function(x,y,dir){
         var old1 = [this.indicies[1][x], this.indicies[1][y]]; // indicies[0]=0
         var old2 = [this.indicies[2][x], this.indicies[2][y]]; //[x, y]
@@ -374,10 +428,20 @@ function Piece()
         var new2 = this.rotate2D(old2, dir);
 
         for(var i = 0; i<3; i++){ arr[ this.xPos+this.indicies[i][0] ][ this.yPos+this.indicies[i][1] ][ this.zPos+this.indicies[i][2] ] = 0 }
+
+        var oldInd = []
+        oldInd[0] = this.indicies[1][x];
+        oldInd[1] = this.indicies[1][y];
+        oldInd[2] = this.indicies[2][x];
+        oldInd[3] = this.indicies[2][y];
+
         this.indicies[1][x] = new1[0];
         this.indicies[1][y] = new1[1];
         this.indicies[2][x] = new2[0];
         this.indicies[2][y] = new2[1];
+
+        this.rotCollision(oldInd, x, y)
+
         for(var i = 0; i<3; i++){ arr[ this.xPos+this.indicies[i][0] ][ this.yPos+this.indicies[i][1] ][ this.zPos+this.indicies[i][2] ] = this.type }
     }
     this.rotateX = function(dir){ this.rotateAxis(1,2,dir); } //rotate [x=y, y=z]
@@ -385,6 +449,19 @@ function Piece()
     this.rotateZ = function(dir){ this.rotateAxis(0,1,dir); } //rotate [x=x, y=y]
 
     this.init()
+}
+
+// Check if X is in array A
+function inA(x, A){
+    var found;
+    for(var i=0; i<A.length;i++){
+        found = true;
+        for(var j=0; j<3; j++){
+            if(A[i][j]!=x[j]) found = false;
+        }
+        if(found) return true;
+    }
+    return false;
 }
 
 // Check if any slices of array are full
