@@ -1,12 +1,25 @@
 "use strict";
 
+//// porperties for fine tuning
+// distance to playing field
+var camera_distance = 30;
+
+// Move the board up and down with mouse
+const min_spinX = 2; // if mouse movement < min_spinX no movement is done
+const max_spinX = 300; // Maximum up down rotation
+const spinX_scale = 0.1; // Speed at which the board moves up down reletive to mouse
+
+const fovy = 60; //field of view
+////
+
 var canvas;
 var gl;
-
 
 var movement = false;     // Er músarhnappur niðri?
 var spinX = 0;
 var spinY = 0;
+var wheel = 0;
+var checked = false;
 var origX;
 var origY;
 
@@ -16,10 +29,9 @@ var mtLoc;
 var eyeLoc;
 
 
-var camera  = vec4(0.0, 0.0, 15.0, 1.0); // staðsetning myndavélar
-var lookDir = vec4(0.0, 0.0, -1.0, 0.0); // áhorfs vigur
+var camera  = vec4(0.0, 0.0, 15.0, 1.0); // upphafsstaðsetning myndavélar
 var up      = vec4(0.0, 1.0, 0.0, 0.0); // uppvigur
-var proj = perspective( 60, 9.0/16.0, 1.0, -1000.0 ); //fovy, aspect, near, far
+var proj;
 
 
 var lightPosition = vec4(0, 2.0, 3.0, 0.0 );
@@ -34,8 +46,20 @@ var materialShininess = 20.0;
 
 var ambientColor, diffuseColor, specularColor;
 var ambientProduct, diffuseProduct, specularProduct;
-
 var program;
+
+// Create array for cubes
+var arr = [], width = 4, depth = 4, height = 20;
+for ( var x = 0; x < width; x++ ) {
+    arr[x] = [];
+    for ( var y = 0; y < height+3; y++ ){
+        arr[x][y] = [];
+        for ( var z = 0; z < depth; z++ ){
+            arr[x][y][z] = 0;
+        }
+    }
+}
+
 
 window.onload = function init()
 {
@@ -44,6 +68,8 @@ window.onload = function init()
     if ( !gl ) { alert( "WebGL isn't available" ); }
     gl.viewport( 0, 0, canvas.width, canvas.height );
     gl.clearColor( 0.0, 0.0, 0.0, 1.0 );
+    proj = perspective( 40, canvas.width/canvas.height, 1.0, -1000.0 );
+
 
     gl.enable(gl.DEPTH_TEST);
 
@@ -73,7 +99,7 @@ window.onload = function init()
     // verticies
     var vBuffer = gl.createBuffer();
     gl.bindBuffer( gl.ARRAY_BUFFER, vBuffer );
-    gl.bufferData( gl.ARRAY_BUFFER, flatten(cubeVerts), gl.STATIC_DRAW );
+    gl.bufferData( gl.ARRAY_BUFFER, flatten(verticies), gl.STATIC_DRAW );
 
     var vPosition = gl.getAttribLocation( program, "vPosition" );
     gl.vertexAttribPointer( vPosition, 3, gl.FLOAT, false, 0, 0 );
@@ -82,7 +108,7 @@ window.onload = function init()
     // normals
     var nBuffer = gl.createBuffer();
     gl.bindBuffer( gl.ARRAY_BUFFER, nBuffer );
-    gl.bufferData( gl.ARRAY_BUFFER, flatten(cubeNorms), gl.STATIC_DRAW );
+    gl.bufferData( gl.ARRAY_BUFFER, flatten(normals), gl.STATIC_DRAW );
 
     var vNormal = gl.getAttribLocation( program, "vNormal" );
     gl.vertexAttribPointer( vNormal, 3, gl.FLOAT, false, 0, 0 );
@@ -109,7 +135,12 @@ window.onload = function init()
     canvas.addEventListener("mousemove", function(e){
         if(movement) {
     	    spinY += (e.offsetX - origX) % 360;
-            spinX += (e.offsetY - origY) % 360;
+
+            // only change view if greater than min_spinX
+            var new_spinX = (e.offsetY - origY);
+            if(Math.abs(new_spinX) > min_spinX){
+                spinX += (e.offsetY - origY);
+            }
             origX = e.offsetX;
             origY = e.offsetY;
         }
@@ -118,16 +149,16 @@ window.onload = function init()
      window.addEventListener("keydown", function(e){
          switch( e.keyCode ) {
             case 73:	// i
-                moveFB = 1;
+
                 break;
             case 75:	// k
-                moveFB = -1;
+
                 break;
             case 76:	// l
-                moveLR = 1;
+
                 break;
             case 74:	// j
-                moveLR = -1;
+
                 break;
             case 38:	// uparrow
                 p.move([-1,0])
@@ -142,38 +173,38 @@ window.onload = function init()
                 p.move([0,-1])
                 break;
             case 65:	// a
-                
+
                 break;
             case 90:    // z
-                
+
                 break;
             case 83:	// s
-                
+
                 break;
             case 88:    // x
-                
+
                 break;
             case 68:	// d
-                
+
                 break;
             case 67:    // c
-                
+
                 break;
          }
      }  );
      window.addEventListener("keyup", function(e){
          switch( e.keyCode ) {
             case 73:	// i
-                moveFB = 0;
+
                 break;
             case 75:	// k
-                moveFB = 0;
+
                 break;
             case 76:	// l
-                moveLR = 0;
+
                 break;
             case 74:	// j
-                moveLR = 0;
+
                 break;
          }
      }  );
@@ -181,9 +212,9 @@ window.onload = function init()
      // Event listener for mousewheel
      window.addEventListener("wheel", function(e){
          if( e.deltaY > 0.0 ) {
-             camera[1] -= 0.2;
+             wheel -= 1;
          } else {
-             camera[1] += 0.2;
+             wheel += 1;
          }
      }  );
 
@@ -197,41 +228,12 @@ window.onload = function init()
      document.getElementById("z").oninput = function(){
          lightPosition[2] = document.getElementById("z").value
      }
-
-
-     document.getElementById("freeView").onchange = function(){
-         checked = document.getElementById("freeView").checked
-
-         if(checked){
-             spinX=spinX2;
-             spinY=spinY2;
-         } if(!checked) {
-             spinX=spinX1;
-             spinY=spinY1;
-         }
+     document.getElementById("showLight").onchange = function(){
+         checked = document.getElementById("showLight").checked
      }
 
+
      gameLoop();
-}
-var checked = false;
-const moveSpeed = 1.0;
-var moveFB = 0;
-var moveLR = 0;
-var spinX2 = 0;
-var spinY2 = 0;
-var spinX1 = 0;
-var spinY1 = 0;
-
-
-var arr = [], width = 4, depth = 4, height = 7;
-for ( var x = 0; x < width; x++ ) {
-    arr[x] = [];
-    for ( var y = 0; y < height+3; y++ ){
-        arr[x][y] = [];
-        for ( var z = 0; z < depth; z++ ){
-            arr[x][y][z] = 0;
-        }
-    }
 }
 
 function getRandomInt(min, max) {
@@ -249,7 +251,7 @@ function Piece()
         this.type = getRandomInt(1,3);
 
         // Initialize top position
-        this.yPos = height+1;
+        this.yPos = height-1;
         this.xPos = width/2; //getRandomInt( 1, width-1);
         this.zPos = width/2; //getRandomInt( 1, depth-1);
 
@@ -338,7 +340,7 @@ function Piece()
     this.move = function(key)
     {
         for(var i = 0; i<3; i++)
-        { 
+        {
             for(var i = 0; i<3; i++){ arr[ this.xPos+this.indicies[i][0] ][ this.yPos+this.indicies[i][1] ][ this.zPos+this.indicies[i][2] ] = 0 }
             var nextX = this.xPos + key[1];
             var nextZ = this.zPos + key[0];
@@ -357,7 +359,7 @@ function Piece()
                 this.zPos = nextZ;
             }
             for(var i = 0; i<3; i++){ arr[ this.xPos+this.indicies[i][0] ][ this.yPos+this.indicies[i][1] ][ this.zPos+this.indicies[i][2] ] = this.type }
-            render() 
+            render()
         }
     }
 
@@ -420,30 +422,22 @@ function gameLoop()
 }
 
 
-
-
 function render()
 {
     gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-    if(checked){
-        spinX2 = spinX;
-        spinY2 = spinY;
 
-        var maxLookUp = 89;
-        if(spinX>maxLookUp) spinX2 = maxLookUp;
-        if(spinX<-maxLookUp) spinX2 = -maxLookUp;
+    if(spinX > max_spinX){
+        spinX = max_spinX;
     }
-    lookDir = mult( rotateY(-spinY2), vec4(0.0, 0.0, -1.0, 1.0) );
-    lookDir = mult( rotate(-spinX2, cross(lookDir, up)), lookDir );
+    if(spinX < -max_spinX){
+        spinX = -max_spinX;
+    }
+    camera[1] = spinX*spinX_scale;
 
-    camera = add( camera, scale(moveFB*moveSpeed, lookDir) );
-    var dir = vec4(cross(lookDir, up));
-    dir = scale(1/length(dir), dir);
-    camera = add( camera, scale(moveLR*moveSpeed, dir) );
+    //var distance = camera_distance - wheel;
 
-
-
-    var mv = lookAt( vec3(camera), vec3(add(camera, lookDir)), vec3(up) );
+    camera = scale(camera_distance/length(camera), camera)
+    var mv = lookAt( vec3(camera), vec3(0,wheel,0), vec3(up) );
     gl.uniform4fv( gl.getUniformLocation(program, "lightPosition"), flatten(lightPosition) );
     gl.uniformMatrix4fv(mvLoc, false, flatten(mv) );
     gl.uniform4fv(eyeLoc, flatten(camera) );
@@ -464,13 +458,9 @@ function render()
     var blueSpecularProduct = mult(lightSpecular, materialSpecular);
 
 
+    //var field_rotation = mult(rotateX(spinX), rotateY(spinY));
+    var field_rotation = rotateY(spinY);
 
-    if(!checked) {
-        spinX1 = spinX;
-        spinY1 = spinY;
-    }
-    //var field_rotation = mult(rotateY(spinY1), rotateX(spinX1));
-    var field_rotation = rotateY(spinY1);
     var field_translation = translate(-(width-1)/2, -(height-1)/2, -(depth-1)/2)
     var field_mt = mult(field_rotation, field_translation)
 
@@ -478,7 +468,7 @@ function render()
     var t;
 
     for ( var x = 0; x < width; x++ ) {
-        for ( var y = 0; y < height+3; y++ ){
+        for ( var y = 0; y < height; y++ ){
             for ( var z = 0; z < depth; z++ ){
                 var type = arr[x][y][z];
                 if(type == 1){
@@ -514,10 +504,15 @@ function render()
     gl.uniform4fv( gl.getUniformLocation(program, "diffuseProduct"), flatten(diffuseProduct) );
     gl.uniform4fv( gl.getUniformLocation(program, "specularProduct"), flatten(specularProduct) );
 
+    // Line box
+    gl.uniformMatrix4fv(mtLoc, false, flatten(mult(field_mt, translate(-0.5,-0.5,-0.5))) );
+    gl.drawArrays( gl.LINES, numVerts, 24 );
 
-    mt =  mult(translate(lightPosition[0],lightPosition[1],lightPosition[2]), scalem(0.1,0.1,0.1));
-    gl.uniformMatrix4fv(mtLoc, false, flatten(mt) );
-    gl.drawArrays( gl.TRIANGLES, 0, numVerts );
+    if(checked){
+        mt =  mult(translate(lightPosition[0],lightPosition[1],lightPosition[2]), scalem(0.1,0.1,0.1));
+        gl.uniformMatrix4fv(mtLoc, false, flatten(mt) );
+        gl.drawArrays( gl.TRIANGLES, 0, numVerts );
+    }
 }
 
 const numVerts = 36;
@@ -609,3 +604,49 @@ const cubeNorms = [
   -1.0,  0.0,  0.0,
   -1.0,  0.0,  0.0
 ];
+
+//create lines
+const LineVerts = [
+    // Bottom
+    0.0,   0.0,   0.0,
+    width, 0.0,   0.0,
+
+    width, 0.0,   0.0,
+    width, height, 0.0,
+
+    width, height, 0.0,
+    0.0,   height, 0.0,
+
+    0.0,   height, 0.0,
+    0.0,   0.0,   0.0,
+
+    // Top
+    0.0,   0.0,   depth,
+    width, 0.0,   depth,
+
+    width, 0.0,   depth,
+    width, height, depth,
+
+    width, height, depth,
+    0.0,   height, depth,
+
+    0.0,   height, depth,
+    0.0,   0.0,   depth,
+
+    // Connect
+    0.0,   0.0,   0.0,
+    0.0,   0.0,   depth,
+
+    width, 0.0,   0.0,
+    width, 0.0,   depth,
+
+    width, height, 0.0,
+    width, height, depth,
+
+    0.0,   height, 0.0,
+    0.0,   height, depth
+]
+
+var verticies = cubeVerts.concat(LineVerts);
+// don't care about the normals for the line but they have to be in the buffer
+var normals = cubeNorms.concat(LineVerts);
