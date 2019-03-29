@@ -173,22 +173,25 @@ window.onload = function init()
                 p.move([0,-1])
                 break;
             case 65:	// a
-
+                p.rotateX(1);
                 break;
             case 90:    // z
-
+                p.rotateX(-1);
                 break;
             case 83:	// s
-
+                p.rotateY(1);
                 break;
             case 88:    // x
-
+                p.rotateY(-1);
                 break;
             case 68:	// d
-
+                p.rotateZ(1);
                 break;
             case 67:    // c
-
+                p.rotateZ(-1);
+                break;
+            case 32:    // spacebar
+                p.drop();
                 break;
          }
      }  );
@@ -247,7 +250,7 @@ function Piece()
 
     this.init = function()
     {
-        //// initialize piece
+        // initialize piece
         this.type = getRandomInt(1,3);
 
         // Initialize top position
@@ -268,18 +271,8 @@ function Piece()
             this.indicies[2] = [0, 1, 0];
         }
 
-        // Random rotation
-        var xRotate = getRandomInt(0,5);
-        var yRotate = getRandomInt(0,5);
-        var zRotate = getRandomInt(0,5);
-        for(var i = 0; i<xRotate; i++){ this.rotateX(); }
-        for(var i = 0; i<yRotate; i++){ this.rotateY(); }
-        for(var i = 0; i<zRotate; i++){ this.rotateZ(); }
-
         // Put this new piece in arr
         for(var i = 0; i<3; i++){ arr[ this.xPos+this.indicies[i][0] ][ this.yPos+this.indicies[i][1] ][ this.zPos+this.indicies[i][2] ] = this.type }
-
-        ////
     }
 
     // Returns the indicies of the lowest blocks... indicies
@@ -363,18 +356,33 @@ function Piece()
         }
     }
 
-    this.rotateX = function()
-    {
-
+    // input:  2d arr [x,y], dir -1/+1
+    // output: 90deg rotated arr [x', y']
+    this.rotate2D = function(current, dir){
+        var rotation = [[0,1],[1,0],[0,-1],[-1,0]];
+        for(var i = 0; i<4 ;i++){
+            if((current[0] == rotation[i][0]) && (current[1] == rotation[i][1])){
+                return rotation[(i+dir+4)%4];
+            }
+        }
+        return current;
     }
-    this.rotateY = function()
-    {
+    this.rotateAxis = function(x,y,dir){
+        var old1 = [this.indicies[1][x], this.indicies[1][y]]; // indicies[0]=0
+        var old2 = [this.indicies[2][x], this.indicies[2][y]]; //[x, y]
+        var new1 = this.rotate2D(old1, dir);
+        var new2 = this.rotate2D(old2, dir);
 
+        for(var i = 0; i<3; i++){ arr[ this.xPos+this.indicies[i][0] ][ this.yPos+this.indicies[i][1] ][ this.zPos+this.indicies[i][2] ] = 0 }
+        this.indicies[1][x] = new1[0];
+        this.indicies[1][y] = new1[1];
+        this.indicies[2][x] = new2[0];
+        this.indicies[2][y] = new2[1];
+        for(var i = 0; i<3; i++){ arr[ this.xPos+this.indicies[i][0] ][ this.yPos+this.indicies[i][1] ][ this.zPos+this.indicies[i][2] ] = this.type }
     }
-    this.rotateZ = function()
-    {
-
-    }
+    this.rotateX = function(dir){ this.rotateAxis(1,2,dir); } //rotate [x=y, y=z]
+    this.rotateY = function(dir){ this.rotateAxis(0,2,dir); } //rotate [x=x, y=z]
+    this.rotateZ = function(dir){ this.rotateAxis(0,1,dir); } //rotate [x=x, y=y]
 
     this.init()
 }
