@@ -117,32 +117,62 @@ window.onload = function init()
 
      window.addEventListener("keydown", function(e){
          switch( e.keyCode ) {
-            case 87:	// w
+            case 73:	// i
                 moveFB = 1;
                 break;
-            case 83:	// s
+            case 75:	// k
                 moveFB = -1;
                 break;
-            case 68:	// d
+            case 76:	// l
                 moveLR = 1;
                 break;
-            case 65:	// a
+            case 74:	// j
                 moveLR = -1;
+                break;
+            case 38:	// uparrow
+                p.move([-1,0])
+                break;
+            case 40:	// backarrow
+                p.move([1,0])
+                break;
+            case 39:	// rightarrow
+                p.move([0,1])
+                break;
+            case 37:	// leftarrow
+                p.move([0,-1])
+                break;
+            case 65:	// a
+                
+                break;
+            case 90:    // z
+                
+                break;
+            case 83:	// s
+                
+                break;
+            case 88:    // x
+                
+                break;
+            case 68:	// d
+                
+                break;
+            case 67:    // c
+                
                 break;
          }
      }  );
      window.addEventListener("keyup", function(e){
          switch( e.keyCode ) {
-            case 87:	// w
+            case 73:	// i
                 moveFB = 0;
                 break;
-            case 83:	// s
+            case 75:	// k
                 moveFB = 0;
                 break;
-            case 68:	// d
+            case 76:	// l
                 moveLR = 0;
                 break;
-            case 65:	// a
+            case 74:	// j
                 moveLR = 0;
                 break;
          }
@@ -193,7 +223,7 @@ var spinX1 = 0;
 var spinY1 = 0;
 
 
-var arr = [], width = 6, depth = 6, height = 7;
+var arr = [], width = 4, depth = 4, height = 7;
 for ( var x = 0; x < width; x++ ) {
     arr[x] = [];
     for ( var y = 0; y < height+3; y++ ){
@@ -218,11 +248,10 @@ function Piece()
         //// initialize piece
         this.type = getRandomInt(1,3);
 
-        // random top position
+        // Initialize top position
         this.yPos = height+1;
-        this.xPos = getRandomInt( 1, width-1);
-        this.zPos = getRandomInt( 1, depth-1);
-
+        this.xPos = width/2; //getRandomInt( 1, width-1);
+        this.zPos = width/2; //getRandomInt( 1, depth-1);
 
         // Always make same piece the just rotate for randomness
         this.indicies = []; //+1 or -1 for each axis
@@ -236,7 +265,6 @@ function Piece()
             this.indicies[1] = [1, 0, 0];
             this.indicies[2] = [0, 1, 0];
         }
-
 
         // Random rotation
         var xRotate = getRandomInt(0,5);
@@ -252,14 +280,84 @@ function Piece()
         ////
     }
 
+    // Returns the indicies of the lowest blocks... indicies
+    this.getLowest = function(){
+        var indicies = [];
+        // Check each block
+        for(var i=0; i<3; i++){
+            var index = i;
+            var x = this.indicies[i][0];
+            var y = this.indicies[i][1];
+            var z = this.indicies[i][2];
+            // Then check all other blocks
+            for(var j=0; j<3;j++){
+                var tempx = this.indicies[i][0];
+                var tempy = this.indicies[i][1];
+                var tempz = this.indicies[i][2];
+                // If there is another block with the same x and z values but lower y value
+                if(x==tempx && y<tempy && z==tempz)
+                    index = j;
+            }
+            indicies.push(index)
+        }
+        return indicies;
+    }
+
+
     this.drop = function()
     {
-        for(var i = 0; i<3; i++){ arr[ this.xPos+this.indicies[i][0] ][ this.yPos+this.indicies[i][1] ][ this.zPos+this.indicies[i][2] ] = 0 }
-        this.yPos = this.yPos-1;
-        for(var i = 0; i<3; i++){ arr[ this.xPos+this.indicies[i][0] ][ this.yPos+this.indicies[i][1] ][ this.zPos+this.indicies[i][2] ] = this.type }
-        // if piece hit rock bottom /placeholder
-        if(this.yPos==0){
-            this.init();
+        var nextY = this.yPos-1;
+        var collision = false; // Collision flag
+        var lowest = this.getLowest(); // Get indicies of the lowest blocks
+        for(var i = 0; i<3; i++){
+            if(lowest.includes(i)){
+                var nextBlock = arr[ this.xPos+this.indicies[i][0]][ nextY+ this.indicies[i][1]][ this.zPos+this.indicies[i][2] ];
+                // Only check lowest blocks
+                if(this.indicies[i][1]<1){
+                    // If collition, don't move and start a new block
+                    if(nextBlock>0){
+                        collision = true;
+                        this.init();
+                    }
+                }
+            }
+        }
+
+        // No collision
+        if(!collision){
+            for(var i = 0; i<3; i++){ arr[ this.xPos+this.indicies[i][0] ][ this.yPos+this.indicies[i][1] ][ this.zPos+this.indicies[i][2] ] = 0 }
+            this.yPos = nextY;
+            for(var i = 0; i<3; i++){ arr[ this.xPos+this.indicies[i][0] ][ this.yPos+this.indicies[i][1] ][ this.zPos+this.indicies[i][2] ] = this.type }
+            // if piece hit rock bottom /placeholder
+            if(this.yPos==0){
+                this.init();
+            }
+        }
+    }
+
+    this.move = function(key)
+    {
+        for(var i = 0; i<3; i++)
+        { 
+            for(var i = 0; i<3; i++){ arr[ this.xPos+this.indicies[i][0] ][ this.yPos+this.indicies[i][1] ][ this.zPos+this.indicies[i][2] ] = 0 }
+            var nextX = this.xPos + key[1];
+            var nextZ = this.zPos + key[0];
+            var OOB = false; // OUT OF BOUNDS
+
+            // Check if next any block is out of bound according to the next position
+            for(var i = 0; i<3; i++){
+                if(nextX+this.indicies[i][0] < 0 || nextX+this.indicies[i][0] >= width)
+                    OOB = true;
+                if(nextZ+this.indicies[i][2] < 0 || nextZ+this.indicies[i][2] >= width)
+                    OOB = true;
+            }
+            // If not outofbounds, allow move
+            if(!OOB){
+                this.xPos = nextX;
+                this.zPos = nextZ;
+            }
+            for(var i = 0; i<3; i++){ arr[ this.xPos+this.indicies[i][0] ][ this.yPos+this.indicies[i][1] ][ this.zPos+this.indicies[i][2] ] = this.type }
+            render() 
         }
     }
 
@@ -279,6 +377,34 @@ function Piece()
     this.init()
 }
 
+// Check if any slices of array are full
+function checkArr(){
+    var flag;
+    for(var i=0; i<depth; i++){
+        flag = true;
+        for(var j=0; j<width; j++){
+            for(var k=0; k<width; k++){
+            if(arr[j][i][k] == 0)
+                flag = false;
+            }
+        }
+        if(flag)
+            delSlice(i);
+        flag = true;
+    }
+}
+
+// Delete slice of array and move slices down accordingly
+function delSlice(ind){
+    for(var i=ind; i<depth; i++){
+        for(var j=0; j<width; j++){
+            for(var k=0; k<width; k++){
+                arr[j][i][k] = arr[j][i+1][k];
+            }
+        }
+    }
+}
+
 var p = new Piece();
 var time = 0;
 
@@ -286,6 +412,7 @@ function gameLoop()
 {
     if(time%40==0){
         p.drop();
+        checkArr();
     }
     time++;
     render();
