@@ -2,11 +2,11 @@
 
 //// porperties for fine tuning
 // distance to playing field
-var camera_distance = 30;
+var camera_distance = 25;
 
 // Move the board up and down with mouse
 const min_spinX = 2; // if mouse movement < min_spinX no movement is done
-const max_spinX = 300; // Maximum up down rotation
+const max_spinX = 250; // Maximum up down rotation
 const spinX_scale = 0.1; // Speed at which the board moves up down reletive to mouse
 
 const fovy = 40; //field of view
@@ -18,9 +18,9 @@ var canvas;
 var gl;
 
 var movement = false;     // Er músarhnappur niðri?
-var spinX = 0;
-var spinY = 0;
-var wheel = 0;
+var spinX = 220; // starting camera_y_pos
+var spinY = -6; // starting field rotation
+var wheel = 4; //start look at pos
 var checked = false;
 var origX;
 var origY;
@@ -147,8 +147,10 @@ window.onload = function init()
             // only change view if greater than min_spinX
             var new_spinX = (e.offsetY - origY);
             if(Math.abs(new_spinX) > min_spinX){
-                spinX += (e.offsetY - origY);
+                spinX += new_spinX;
             }
+            if(spinX > max_spinX){ spinX = max_spinX; }
+            if(spinX < -max_spinX){ spinX = -max_spinX; }
             origX = e.offsetX;
             origY = e.offsetY;
         }
@@ -224,8 +226,10 @@ window.onload = function init()
      window.addEventListener("wheel", function(e){
          if( e.deltaY > 0.0 ) {
              wheel -= 1;
+             if(wheel<-10){ wheel =-10; }
          } else {
              wheel += 1;
+             if(wheel>10){ wheel =10; }
          }
      }  );
 
@@ -370,8 +374,6 @@ function Piece()
         var nextX = this.xPos + key[1];
         var nextZ = this.zPos + key[0];
         var OOB = false; // OUT OF BOUNDS
-        console.log(nextX);
-        console.log(nextZ)
 
         var sColl = this.getSide([key[1], 0, key[0]]);  // Idices of the blocks on the side where to check for collition
 
@@ -419,7 +421,6 @@ function Piece()
     // Check if array A collides with another block or is out of bounds
     this.rotCollision = function(old, x, y){
         for(var i=0; i<3; i++){
-            console.log(this.xPos+this.indicies[i][0])
             if(this.xPos+this.indicies[i][0] < 0 || this.xPos+this.indicies[i][0] >= width
                 || this.zPos+this.indicies[i][2] < 0 || this.zPos+this.indicies[i][2] >= width){
                 this.indicies[1][x] = old[0];
@@ -552,17 +553,8 @@ function render()
 {
     gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-    if(spinX > max_spinX){
-        spinX = max_spinX;
-    }
-    if(spinX < -max_spinX){
-        spinX = -max_spinX;
-    }
     camera[1] = spinX*spinX_scale;
-
-    //var distance = camera_distance - wheel;
-
-    camera = scale(camera_distance/length(camera), camera)
+    camera = scale(camera_distance/length(camera), camera);
     var mv = lookAt( vec3(camera), vec3(0,wheel,0), vec3(up) );
     gl.uniform4fv( gl.getUniformLocation(program, "lightPosition"), flatten(lightPosition) );
     gl.uniformMatrix4fv(mvLoc, false, flatten(mv) );
