@@ -362,8 +362,10 @@ function Piece()
 
             // if piece hit rock bottom /placeholder
             for(var i=0; i<3; i++){
-                if(this.yPos + this.indicies[i][1] == 0)
+                if(this.yPos + this.indicies[i][1] == 0){
+                    checkArr();
                     this.init();
+                }
             }
         }
     }
@@ -476,7 +478,7 @@ function inA(x, A){
 // Check if any slices of array are full
 function checkArr(){
     var flag;
-    for(var i=0; i<depth; i++){
+    for(var i=0; i<height; i++){
         flag = true;
         for(var j=0; j<width; j++){
             for(var k=0; k<width; k++){
@@ -484,15 +486,17 @@ function checkArr(){
                 flag = false;
             }
         }
-        if(flag)
+        if(flag){
             delSlice(i);
+            i--;
+        }
         flag = true;
     }
 }
 
 // Delete slice of array and move slices down accordingly
 function delSlice(ind){
-    for(var i=ind; i<depth; i++){
+    for(var i=ind; i<height; i++){
         for(var j=0; j<width; j++){
             for(var k=0; k<width; k++){
                 arr[j][i][k] = arr[j][i+1][k];
@@ -508,7 +512,6 @@ function gameLoop()
 {
     if(time%40==0){
         p.drop();
-        checkArr();
     }
     time++;
     render();
