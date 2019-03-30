@@ -37,6 +37,7 @@ var camera  = vec4(0.0, 0.0, 15.0, 1.0); // upphafsstaðsetning myndavélar
 var up      = vec4(0.0, 1.0, 0.0, 0.0); // uppvigur
 var proj;
 
+var eventOn = true; // Allow event handler for move and rotate
 
 var lightPosition = vec4(0, 2.0, 3.0, 0.0 );
 var lightAmbient = vec4(1.0, 1.0, 1.0, 1.0 );
@@ -180,37 +181,70 @@ window.onload = function init()
 
                 break;
             case 38:	// uparrow
-                p.move([-1,0])
+                if(eventOn){
+                    eventOn = false;
+                    p.move([-1,0]);
+                }
                 break;
             case 40:	// backarrow
-                p.move([1,0])
+                if(eventOn){
+                    eventOn = false;
+                    p.move([1,0]);
+                }
                 break;
             case 39:	// rightarrow
-                p.move([0,1])
+                if(eventOn){
+                    eventOn = false;
+                    p.move([0,1]);
+                }
                 break;
             case 37:	// leftarrow
-                p.move([0,-1])
+                if(eventOn){
+                    eventOn = false;
+                    p.move([0,-1]);
+                }
                 break;
             case 65:	// a
-                p.rotateX(1);
+                if(eventOn){
+                    eventOn = false;
+                    p.rotateX(1);
+                }
                 break;
             case 90:    // z
-                p.rotateX(-1);
+                if(eventOn){
+                    eventOn = false;
+                    p.rotateX(-1);
+                }
                 break;
             case 83:	// s
-                p.rotateY(1);
+                if(eventOn){
+                    eventOn = false;
+                    p.rotateY(1);
+                }
                 break;
             case 88:    // x
-                p.rotateY(-1);
+                if(eventOn){
+                    eventOn = false;
+                    p.rotateY(-1);
+                }
                 break;
             case 68:	// d
-                p.rotateZ(1);
+                if(eventOn){
+                    eventOn = false;
+                    p.rotateZ(1);
+                }
                 break;
             case 67:    // c
-                p.rotateZ(-1);
+                if(eventOn){
+                    eventOn = false;
+                    p.rotateZ(-1);
+                }
                 break;
             case 32:    // spacebar
-                p.drop();
+                if(eventOn){
+                    eventOn = false;
+                    p.drop();
+                }
                 break;
          }
      }  );
@@ -295,6 +329,7 @@ function Piece()
 
         // Put this new piece in arr
         for(var i = 0; i<3; i++){ arr[ this.xPos+this.indicies[i][0] ][ this.yPos+this.indicies[i][1] ][ this.zPos+this.indicies[i][2] ] = this.type }
+        eventOn = true;
     }
 
     // Returns the indicies of the blocks furthest on the side indicated
@@ -380,6 +415,7 @@ function Piece()
                 }
             }
         }
+        eventOn = true;
     }
 
     this.move = function(key)
@@ -388,7 +424,6 @@ function Piece()
         var nextX = this.xPos + key[1];
         var nextZ = this.zPos + key[0];
         var OOB = false; // OUT OF BOUNDS
-
         var sColl = this.getSide([key[1], 0, key[0]]);  // Idices of the blocks on the side where to check for collition
 
         // Check if next any block is out of bound according to the next position
@@ -417,6 +452,7 @@ function Piece()
         }
         for(var i = 0; i<3; i++){ arr[ this.xPos+this.indicies[i][0] ][ this.yPos+this.indicies[i][1] ][ this.zPos+this.indicies[i][2] ] = this.type }
         render()
+        eventOn = true;
     }
 
 
@@ -436,7 +472,8 @@ function Piece()
     this.rotCollision = function(old, x, y){
         for(var i=0; i<3; i++){
             if(this.xPos+this.indicies[i][0] < 0 || this.xPos+this.indicies[i][0] >= width
-                || this.zPos+this.indicies[i][2] < 0 || this.zPos+this.indicies[i][2] >= width){
+                || this.zPos+this.indicies[i][2] < 0 || this.zPos+this.indicies[i][2] >= width
+                || arr[ this.xPos+this.indicies[i][0] ][ this.yPos+this.indicies[i][1] ][ this.zPos+this.indicies[i][2] ]!=0){
                 this.indicies[1][x] = old[0];
                 this.indicies[1][y] = old[1];
                 this.indicies[2][x] = old[2];
@@ -466,6 +503,7 @@ function Piece()
         this.rotCollision(oldInd, x, y)
 
         for(var i = 0; i<3; i++){ arr[ this.xPos+this.indicies[i][0] ][ this.yPos+this.indicies[i][1] ][ this.zPos+this.indicies[i][2] ] = this.type }
+        eventOn = true;
     }
     this.rotateX = function(dir){ this.rotateAxis(1,2,dir); } //rotate [x=y, y=z]
     this.rotateY = function(dir){ this.rotateAxis(0,2,dir); } //rotate [x=x, y=z]
@@ -505,6 +543,7 @@ function checkArr(){
             i--;
         }
         flag = true;
+        eventOn = true;
     }
 }
 
