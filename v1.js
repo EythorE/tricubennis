@@ -51,7 +51,7 @@ var ambientProduct, diffuseProduct, specularProduct;
 var program;
 
 // Create array for cubes
-var arr = [], width = 4, depth = 4, height = 20;
+var arr = [], width = 6, depth = 6, height = 20;
 for ( var x = 0; x < width; x++ ) {
     arr[x] = [];
     for ( var y = 0; y < height+3; y++ ){
