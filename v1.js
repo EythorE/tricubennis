@@ -348,6 +348,8 @@ function Piece()
                     // If collition, don't move and start a new block
                     if(nextBlock>0){
                         collision = true;
+                        for(var i = 0; i<3; i++){ arr[ this.xPos+this.indicies[i][0] ][ this.yPos+this.indicies[i][1] ][ this.zPos+this.indicies[i][2] ] = this.type }
+                        checkArr();
                         this.init();
                     }
                 }
