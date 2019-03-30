@@ -13,6 +13,7 @@ const fovy = 40; //field of view
 
 const ghost_transparency = .6;
 ////
+var score = 0;
 
 var canvas;
 var gl;
@@ -247,6 +248,7 @@ window.onload = function init()
          checked = document.getElementById("showLight").checked
      }
 
+     document.getElementById("txtScore").innerHTML = score;
 
      gameLoop();
 }
@@ -489,6 +491,8 @@ function checkArr(){
             }
         }
         if(flag){
+            score += 1;
+            document.getElementById("txtScore").innerHTML = score;
             delSlice(i);
             i--;
         }
