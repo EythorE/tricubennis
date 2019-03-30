@@ -14,6 +14,7 @@ const fovy = 40; //field of view
 const ghost_transparency = .6;
 ////
 var score = 0;
+var game_is_over = false;
 
 var canvas;
 var gl;
@@ -53,15 +54,18 @@ var program;
 
 // Create array for cubes
 var arr = [], width = 6, depth = 6, height = 20;
-for ( var x = 0; x < width; x++ ) {
-    arr[x] = [];
-    for ( var y = 0; y < height+3; y++ ){
-        arr[x][y] = [];
-        for ( var z = 0; z < depth; z++ ){
-            arr[x][y][z] = 0;
+function init_array(){
+    for ( var x = 0; x < width; x++ ) {
+        arr[x] = [];
+        for ( var y = 0; y < height+3; y++ ){
+            arr[x][y] = [];
+            for ( var z = 0; z < depth; z++ ){
+                arr[x][y][z] = 0;
+            }
         }
     }
 }
+init_array();
 
 
 window.onload = function init()
@@ -158,6 +162,10 @@ window.onload = function init()
     } );
 
      window.addEventListener("keydown", function(e){
+         if(game_is_over){
+             if(e.keyCode == 32){resetGame()}
+             return
+         }
          switch( e.keyCode ) {
             case 73:	// i
 
@@ -516,7 +524,7 @@ var time = 0;
 
 function gameLoop()
 {
-    if(time%40==0){
+    if(time%40==0 && !game_is_over){
         p.drop();
     }
     time++;
@@ -552,11 +560,27 @@ function pieceDropPos(p){
         if(lowest_pos > curr_lowest_pos){
             curr_lowest_pos = lowest_pos;
         }
+
     }
     var drop_pos = vec3(p.xPos, curr_lowest_pos, p.zPos);
+
+    //is game gameOver
+    if(curr_lowest_pos==height-1){
+        document.getElementById("gameOver").innerHTML = "Game Over";
+        game_is_over = true;
+        return [drop_pos, drop_pos, drop_pos]
+    }
     return [drop_pos, add(drop_pos, p.indicies[1]), add(drop_pos, p.indicies[2])];
 }
 
+function resetGame() {
+    init_array();
+    p.init();
+    game_is_over = false;
+    score = 0;
+    document.getElementById("txtScore").innerHTML = score;
+    document.getElementById("gameOver").innerHTML = "";
+}
 
 function render()
 {

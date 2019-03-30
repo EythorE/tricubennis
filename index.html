@@ -74,6 +74,7 @@ main()
     text-shadow: 0 1px 0 #ccc, 0 2px 0 #c9c9c9, 0 3px 0 #bbb, 0 4px 0 #b9b9b9, 0 5px 0 #aaa, 0 6px 1px rgba(0,0,0,.1), 0 0 5px rgba(0,0,0,.1), 0 1px 3px rgba(0,0,0,.3), 0 3px 5px rgba(0,0,0,.2), 0 5px 10px rgba(0,0,0,.25), 0 10px 10px rgba(0,0,0,.2), 0 20px 20px rgba(0,0,0,.15);
     text-align: center;">
         <b>Score:  <span id="txtScore"></span></b>
+        <div style="color: #000;"> <span id="gameOver"></span> </div>
     </div>
     <canvas id="gl-canvas" width="576" height="1024" style="
     padding: 0;
@@ -84,7 +85,7 @@ main()
     right: 0;">
         Oops ... your browser doesn't support the HTML5 canvas element
     </canvas>
-
+    <div style="display:none;"><!-- Remove style to control light-->
     <br>
     light position
     <br>
@@ -92,6 +93,7 @@ main()
     y<input id="y" type="number" value="2.0" step ="0.1" style="width: 60px;"/>
     z<input id="z" type="number" value="3.0" step ="0.1" style="width: 60px;"/>
     <br> Show light position <input id="showLight" type="checkbox"/>
+    </div>
     <!-- <br>keys = qw as zx-->
 
 
